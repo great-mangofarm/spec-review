@@ -1,0 +1,227 @@
+@import 'tailwindcss';
+
+/* 디자인시스템 — 순서 중요. 토큰·폰트가 먼저 깔려야 컴포넌트 스타일이 맞는다 */
+@import '@great-mangofarm/mango-ui/preflight.css';
+@import '@great-mangofarm/mango-ui/fonts.css';
+@import '@great-mangofarm/mango-ui/tokens.css';
+@import '@great-mangofarm/mango-ui/styles.layer.css';
+
+@source '../node_modules/@great-mangofarm/mango-ui/dist';
+
+/* ── 기획서 본문 ────────────────────────────────────────────
+   문단마다 data-block-id 가 박혀 있고, 여기에 댓글이 붙는다.
+   여백 버튼(+ / 말풍선)은 본문 텍스트를 건드리지 않으려고
+   글자 없는 버튼으로 넣기 때문에, 위치만 CSS 로 잡아준다. */
+
+.spec-body {
+  font-size: 15.5px;
+  line-height: 1.8;
+  max-width: 46rem;
+}
+
+.spec-body [data-block-id] {
+  position: relative;
+}
+
+.spec-body h1,
+.spec-body h2,
+.spec-body h3,
+.spec-body h4 {
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+  margin: 1.9em 0 0.6em;
+}
+
+.spec-body h1 { font-size: 1.6em; }
+.spec-body h2 {
+  font-size: 1.3em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--color-border, #e5e5e5);
+}
+.spec-body h3 { font-size: 1.12em; }
+
+.spec-body p { margin: 0.85em 0; }
+
+.spec-body ul,
+.spec-body ol {
+  margin: 0.85em 0;
+  padding-left: 1.5em;
+}
+.spec-body ul { list-style: disc; }
+.spec-body ol { list-style: decimal; }
+.spec-body li { margin: 0.3em 0; }
+
+.spec-body blockquote {
+  margin: 1em 0;
+  padding: 0.1em 1em;
+  border-left: 3px solid var(--color-border, #d4d4d4);
+  color: var(--color-fg-muted, #666);
+}
+
+.spec-body pre {
+  margin: 1em 0;
+  padding: 14px 16px;
+  border-radius: 8px;
+  background: var(--color-bg-subtle, #f5f5f4);
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.spec-body code {
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  background: var(--color-bg-subtle, #f5f5f4);
+  font-size: 0.88em;
+}
+
+.spec-body pre code {
+  padding: 0;
+  background: none;
+}
+
+.spec-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1em 0;
+  font-size: 14px;
+}
+
+.spec-body th,
+.spec-body td {
+  padding: 8px 10px;
+  border: 1px solid var(--color-border, #e5e5e5);
+  text-align: left;
+}
+
+.spec-body th {
+  background: var(--color-bg-subtle, #f5f5f4);
+  font-weight: 600;
+}
+
+.spec-body img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+.spec-body hr {
+  margin: 2em 0;
+  border: none;
+  border-top: 1px solid var(--color-border, #e5e5e5);
+}
+
+.spec-body a {
+  color: var(--color-fg-brand, #2563eb);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* 다이어그램 */
+.spec-body .mermaid-block {
+  margin: 1.2em 0;
+  padding: 12px;
+  border: 1px solid var(--color-border, #e5e5e5);
+  border-radius: 8px;
+  overflow-x: auto;
+  text-align: center;
+}
+
+.spec-body .mermaid-block svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.spec-body .mermaid-error {
+  color: var(--color-fg-error, #b91c1c);
+  font-size: 13px;
+  white-space: pre-wrap;
+}
+
+/* ── 하이라이트 ───────────────────────────────────────── */
+
+.spec-body mark.spec-hl {
+  padding: 1px 0;
+  border-radius: 3px;
+  background: #fdedb0;
+  color: inherit;
+  cursor: pointer;
+  box-shadow: inset 0 -1.5px 0 #f0cf55;
+}
+
+.spec-body mark.spec-hl:hover,
+.spec-body mark.spec-hl.is-active {
+  background: #f7cf4a;
+}
+
+.spec-body mark.spec-hl.is-resolved {
+  background: #ececec;
+  color: #6b6b6b;
+  box-shadow: none;
+}
+
+.spec-body [data-block-id].has-comments {
+  border-radius: 4px;
+  background: rgba(253, 237, 176, 0.28);
+  box-shadow: -5px 0 0 #f0cf55;
+}
+
+.spec-body [data-block-id].is-active-block {
+  background: rgba(253, 237, 176, 0.6);
+}
+
+@keyframes spec-flash {
+  0%, 45% { background: rgba(56, 142, 92, 0.18); }
+  100% { background: transparent; }
+}
+
+.spec-body [data-block-id].is-flash {
+  animation: spec-flash 1.2s ease;
+}
+
+/* ── 여백 버튼 ────────────────────────────────────────── */
+
+.spec-body .spec-gutter {
+  position: absolute;
+  top: 0.2em;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-fg-muted, #8a8a8a);
+  opacity: 0;
+  transition: opacity 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+
+.spec-body .spec-gutter svg {
+  width: 13px;
+  height: 13px;
+}
+
+.spec-body .spec-gutter-add { left: -30px; }
+
+.spec-body .spec-gutter-badge {
+  right: -30px;
+  opacity: 1;
+  color: #b48a08;
+}
+
+.spec-body [data-block-id]:hover > .spec-gutter,
+.spec-body .spec-gutter:focus-visible {
+  opacity: 1;
+}
+
+.spec-body .spec-gutter:hover {
+  background: var(--color-bg-subtle, #f0f0ef);
+  border-color: var(--color-border, #e0e0de);
+  color: var(--color-fg, #333);
+}
+
+@media (hover: none) {
+  .spec-body .spec-gutter { opacity: 0.5; }
+}

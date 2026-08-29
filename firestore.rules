@@ -1,0 +1,65 @@
+// 기획서 리뷰 — Firestore 보안 규칙 (원본 기록용)
+//
+// ⚠️ 이 파일은 배포로 반영되지 않습니다.
+//    Firebase 콘솔 → Firestore Database → 규칙에 붙여넣고 [게시] 해야 적용됩니다.
+//
+// ⚠️ 이슈트래커(test-system)와 같은 프로젝트를 씁니다.
+//    기존 규칙을 지우지 말고, 아래 spec* 블록 3개만 이어 붙이세요.
+//    users 컬렉션 규칙은 이미 거기 있는 걸 그대로 씁니다 (이 앱은 읽기만 합니다).
+//
+// 권한 요약
+//  - specSystems : 만들고 고치는 건 admin·pm
+//  - specDocs    : 올리고 고치는 건 admin·pm. 댓글 수 갱신은 로그인 사용자 누구나
+//  - specComments: 로그인했으면 누구나 작성. 고치는 건 본인, 해결 표시는 누구나
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function roleOf() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+    function signedIn() { return request.auth != null; }
+    function isManager() { return signedIn() && (roleOf() == 'admin' || roleOf() == 'pm'); }
+
+    // 이번 수정에서 실제로 바뀐 필드만 골라낸다
+    function changedKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    match /specSystems/{id} {
+      allow read:  if signedIn();
+      allow write: if isManager();
+    }
+
+    match /specDocs/{id} {
+      allow read:   if signedIn();
+      allow create: if isManager();
+      allow delete: if isManager();
+
+      // 본문·제목 수정은 admin·pm 또는 올린 사람.
+      // 여기에 더해, 댓글을 달면 문서에 적어둔 피드백 수를 갱신해야 하므로
+      // 그 두 필드만 바꾸는 건 로그인 사용자 누구에게나 열어둔다.
+      allow update: if isManager()
+                    || resource.data.ownerUid == request.auth.uid
+                    || (signedIn() && changedKeys().hasOnly(['commentCount', 'openCount']));
+    }
+
+    match /specComments/{id} {
+      allow read:   if signedIn();
+      allow create: if signedIn() && request.resource.data.authorUid == request.auth.uid;
+
+      // 내용 수정은 본인만. 해결/다시 열기는 리뷰에 참여한 누구나 —
+      // 논의를 닫는 건 팀이 같이 하는 일이라서.
+      allow update: if signedIn() && (
+                      resource.data.authorUid == request.auth.uid
+                      || changedKeys().hasOnly([
+                           'resolved', 'resolvedBy', 'resolvedByName', 'resolvedAt', 'updatedAt'
+                         ])
+                    );
+
+      allow delete: if signedIn() && (
+                      resource.data.authorUid == request.auth.uid || isManager()
+                    );
+    }
+  }
+}

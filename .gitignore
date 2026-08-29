@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+.env.local
+.DS_Store
+*.log
+
+# 작업 규칙 — 개인 설정이라 공유 안 함
+CLAUDE.md
+*.tsbuildinfo

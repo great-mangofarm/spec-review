@@ -1,0 +1,35 @@
+{
+  "name": "spec-review",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@great-mangofarm/mango-ui": "^0.0.0-Beta.8",
+    "dompurify": "^3.4.14",
+    "firebase": "^12.18.0",
+    "marked": "^18.0.11",
+    "mermaid": "^11.17.2",
+    "pdfmake": "^0.3.11",
+    "pretendard": "^1.3.9",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^26.4.0",
+    "@types/pdfmake": "^0.3.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "@vitejs/plugin-react": "^6.1.1",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2"
+  }
+}
