@@ -46,7 +46,11 @@ export default function DocsPage() {
           setDocs(list)
           setError('')
         },
-        (err) => setError(err.message),
+        (err) => {
+          // 실패해도 목록을 비워둬야 스피너가 안 멈추고 도는 대신 오류가 보인다
+          setDocs([])
+          setError(err.message)
+        },
       ),
     [systemId],
   )

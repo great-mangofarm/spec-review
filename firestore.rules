@@ -1,16 +1,16 @@
-// 기획서 리뷰 — Firestore 보안 규칙 (원본 기록용)
-//
+// Firestore 보안 규칙 (원본 기록용)
 // ⚠️ 이 파일은 배포로 반영되지 않습니다.
-//    Firebase 콘솔 → Firestore Database → 규칙에 붙여넣고 [게시] 해야 적용됩니다.
+//    변경 시 Firebase 콘솔 → Firestore Database → 규칙에 붙여넣고 [게시] 해야 적용됩니다.
 //
-// ⚠️ 이슈트래커(test-system)와 같은 프로젝트를 씁니다.
-//    기존 규칙을 지우지 말고, 아래 spec* 블록 3개만 이어 붙이세요.
-//    users 컬렉션 규칙은 이미 거기 있는 걸 그대로 씁니다 (이 앱은 읽기만 합니다).
+// ⚠️ 이슈트래커(test-system)와 같은 Firebase 프로젝트(qa-test-274fa)를 씁니다.
+//    아래는 이슈트래커 규칙에 기획서 리뷰용 spec* 블록 3개를 더한 전체본입니다.
+//    이슈트래커 쪽 규칙이 바뀌면 이 파일도 같이 맞춰야 합니다.
 //
 // 권한 요약
-//  - specSystems : 만들고 고치는 건 admin·pm
-//  - specDocs    : 올리고 고치는 건 admin·pm. 댓글 수 갱신은 로그인 사용자 누구나
-//  - specComments: 로그인했으면 누구나 작성. 고치는 건 본인, 해결 표시는 누구나
+//  - products / suites : 생성·수정·삭제는 admin 전용 (구조 관리)
+//  - testcases(운영이슈/테스트케이스) : 생성·수정·삭제는 admin·developer
+//  - users : 본인 또는 admin
+//  - spec* (기획서 리뷰) : 시스템·기획서는 admin·pm, 댓글은 로그인 사용자 누구나
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -18,45 +18,103 @@ service cloud.firestore {
     function roleOf() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
     }
-    function signedIn() { return request.auth != null; }
-    function isManager() { return signedIn() && (roleOf() == 'admin' || roleOf() == 'pm'); }
-
+    function signedIn()     { return request.auth != null; }
+    function isAdmin()      { return signedIn() && roleOf() == 'admin'; }
+    // 구조 관리(프로덕트/묶음): admin·pm
+    function isManager()    { return signedIn() && (roleOf() == 'admin' || roleOf() == 'pm'); }
+    // 콘텐츠 편집(이슈/테스트케이스/QA): admin·pm·developer
+    function isEditor()     { return signedIn() && (roleOf() == 'admin' || roleOf() == 'pm' || roleOf() == 'developer'); }
     // 이번 수정에서 실제로 바뀐 필드만 골라낸다
-    function changedKeys() {
-      return request.resource.data.diff(resource.data).affectedKeys();
+    function changedKeys()  { return request.resource.data.diff(resource.data).affectedKeys(); }
+
+    match /users/{uid} {
+      allow read:   if signedIn();
+      allow create: if signedIn() && request.auth.uid == uid;
+      // 본인 문서는 수정 가능하되 role/uid/email은 변경 금지 (권한 승격 차단). role 변경은 admin만.
+      allow update: if signedIn() && (
+        isAdmin() ||
+        (request.auth.uid == uid
+          && request.resource.data.role == resource.data.role
+          && request.resource.data.uid == resource.data.uid
+          && request.resource.data.email == resource.data.email)
+      );
+      allow delete: if signedIn() && (request.auth.uid == uid || isAdmin());
     }
 
+    match /products/{id} {
+      allow read:  if signedIn();
+      allow write: if isManager();
+    }
+
+    match /suites/{id} {
+      allow read:  if signedIn();
+      allow write: if isManager();
+    }
+
+    match /testcases/{id} {
+      allow read: if signedIn();
+      allow create, update, delete: if isEditor();
+    }
+
+    match /deployBatches/{id} {
+      allow read: if signedIn();
+      allow create, update, delete: if isEditor();
+    }
+
+    match /qaGroups/{id} {
+      allow read: if signedIn();
+      allow create, update, delete: if isEditor();
+    }
+
+    match /qaChecks/{id} {
+      allow read: if signedIn();
+      allow create, update, delete: if isEditor();
+    }
+
+    match /qaTicketGroups/{id} {
+      allow read: if signedIn();
+      allow create, update, delete: if isEditor();
+    }
+
+    // 스태프 개발요청: 로그인 사용자면 작성 가능, 수정/삭제는 작성자 본인 또는 관리자(admin·pm)
+    match /devRequests/{id} {
+      allow read:   if signedIn();
+      allow create: if signedIn() && request.resource.data.createdBy == request.auth.uid;
+      allow update, delete: if signedIn() && (resource.data.createdBy == request.auth.uid || isManager());
+    }
+
+    // ── 기획서 리뷰 ─────────────────────────────────────────────
+
+    // 시스템(서비스·제품): 만들고 고치는 건 admin·pm
     match /specSystems/{id} {
       allow read:  if signedIn();
       allow write: if isManager();
     }
 
+    // 기획서: 올리고 고치고 지우는 건 admin·pm 또는 올린 사람.
+    // 댓글을 달면 문서에 적어둔 피드백 수를 갱신해야 해서,
+    // 그 두 필드만 바꾸는 건 로그인 사용자 누구에게나 열어둔다.
     match /specDocs/{id} {
       allow read:   if signedIn();
       allow create: if isManager();
       allow delete: if isManager();
-
-      // 본문·제목 수정은 admin·pm 또는 올린 사람.
-      // 여기에 더해, 댓글을 달면 문서에 적어둔 피드백 수를 갱신해야 하므로
-      // 그 두 필드만 바꾸는 건 로그인 사용자 누구에게나 열어둔다.
       allow update: if isManager()
                     || resource.data.ownerUid == request.auth.uid
                     || (signedIn() && changedKeys().hasOnly(['commentCount', 'openCount']));
     }
 
+    // 댓글: 로그인했으면 누구나 작성.
+    // 내용 수정은 본인만. 해결/다시 열기는 리뷰에 참여한 누구나 —
+    // 논의를 닫는 건 팀이 같이 하는 일이라서.
     match /specComments/{id} {
       allow read:   if signedIn();
       allow create: if signedIn() && request.resource.data.authorUid == request.auth.uid;
-
-      // 내용 수정은 본인만. 해결/다시 열기는 리뷰에 참여한 누구나 —
-      // 논의를 닫는 건 팀이 같이 하는 일이라서.
       allow update: if signedIn() && (
                       resource.data.authorUid == request.auth.uid
                       || changedKeys().hasOnly([
                            'resolved', 'resolvedBy', 'resolvedByName', 'resolvedAt', 'updatedAt'
                          ])
                     );
-
       allow delete: if signedIn() && (
                       resource.data.authorUid == request.auth.uid || isManager()
                     );

@@ -57,10 +57,7 @@ export default function LoginPage() {
     <div className="grid min-h-screen place-items-center bg-(--color-bg-subtle) px-5">
       <Card size="md" className="w-full max-w-sm">
         <div className="mb-6 text-center">
-          <h1 className="text-lg font-semibold tracking-tight">기획서 리뷰</h1>
-          <p className="mt-1 text-xs text-(--color-fg-muted)">
-            {view === 'login' ? '이슈트래커와 같은 계정으로 들어와요' : '비밀번호 찾기'}
-          </p>
+          <h1 className="text-lg font-semibold tracking-tight">Spec Review</h1>
         </div>
 
         {blocked && (

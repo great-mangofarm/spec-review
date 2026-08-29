@@ -3,6 +3,7 @@ import { Avatar, Badge, Button, useToast } from '@great-mangofarm/mango-ui'
 import Composer from './Composer'
 import { canModerate, useAuth } from '@/store/auth'
 import { deleteComment, updateComment } from '@/lib/db'
+import { initialsOf } from '@/lib/name'
 import type { AnchoredComment, Thread } from '@/lib/types'
 
 const SCOPE_LABEL: Record<string, string> = { inline: '문장', block: '문단', doc: '전체' }
@@ -81,7 +82,7 @@ export default function ThreadCard({ thread, docId, isActive, blockText, onFocus
       onClick={onFocus}
     >
       <div className="mb-1.5 flex items-center gap-2">
-        <Avatar size="xs" name={root.authorName} initials={root.authorName.slice(0, 2)} />
+        <Avatar size="xs" name={root.authorName} initials={initialsOf(root.authorName)} />
         <span className="text-xs font-semibold">{root.authorName}</span>
         <span className="text-xs text-(--color-fg-muted)">{timeAgo(root.createdAt)}</span>
         <Badge size="sm" variant="soft" intent="secondary" className="ml-auto">
@@ -129,7 +130,7 @@ export default function ThreadCard({ thread, docId, isActive, blockText, onFocus
       {replies.map((reply) => (
         <div key={reply.id} className="mt-2.5 border-t border-dashed border-(--color-border) pt-2.5">
           <div className="mb-1 flex items-center gap-2">
-            <Avatar size="xs" name={reply.authorName} initials={reply.authorName.slice(0, 2)} />
+            <Avatar size="xs" name={reply.authorName} initials={initialsOf(reply.authorName)} />
             <span className="text-xs font-semibold">{reply.authorName}</span>
             <span className="text-xs text-(--color-fg-muted)">{timeAgo(reply.createdAt)}</span>
             {(reply.authorUid === user?.uid || moderator) && (

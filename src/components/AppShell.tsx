@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Avatar, Button, TopBar } from '@great-mangofarm/mango-ui'
 import { logout, useAuth } from '@/store/auth'
+import { initialsOf } from '@/lib/name'
 
 interface Props {
   children: ReactNode
@@ -35,7 +36,7 @@ export default function AppShell({ children, center, actions, contained = true }
           {actions}
           {user && (
             <>
-              <Avatar size="sm" name={user.displayName} initials={user.displayName.slice(0, 2)} />
+              <Avatar size="sm" name={user.displayName} initials={initialsOf(user.displayName)} />
               <span className="hidden text-xs text-(--color-fg-muted) sm:inline">{user.displayName}</span>
             </>
           )}
