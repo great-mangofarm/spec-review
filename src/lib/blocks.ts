@@ -41,7 +41,9 @@ export function sanitize(rawHtml: string): string {
     // input 은 체크리스트(할 일 목록) 때문에 남긴다. form 을 막아둬서 제출은 안 된다.
     FORBID_TAGS: ['style', 'form', 'button', 'iframe', 'object', 'embed'],
     ADD_TAGS: ['input'],
-    FORBID_ATTR: ['style', 'srcset'],
+    // hidden 도 지운다. 탭처럼 스크립트로 펼치는 문서는 스크립트가 지워지는 순간
+    // 접힌 부분이 영영 안 보이게 되므로, 리뷰 화면에서는 전부 펼쳐 보인다.
+    FORBID_ATTR: ['style', 'srcset', 'hidden'],
   })
 }
 
@@ -88,11 +90,37 @@ function unwrapContainerParagraphs(root: HTMLElement) {
   }
 }
 
+/**
+ * iframe 포장을 벗긴다.
+ *
+ * AI 도구들이 HTML 을 내보낼 때 문서 전체를 `<iframe srcdoc="...">` 하나로 감싸는
+ * 경우가 있다 (샌드박스 래퍼). iframe 은 살균에서 지워지므로 그대로 두면 문서가
+ * 통째로 빈 화면이 된다. 본문이 사실상 iframe 하나뿐이면 안쪽 문서를 꺼내 쓴다.
+ * DOMParser 는 스크립트를 실행하지 않으므로 살균 전에 파싱해도 안전하다.
+ */
+function unwrapIframeWrapper(raw: string): string {
+  let current = raw
+  for (let depth = 0; depth < 3; depth += 1) {
+    const parsed = new DOMParser().parseFromString(current, 'text/html')
+    const body = parsed.body
+    const frames = body.querySelectorAll('iframe[srcdoc]')
+    if (frames.length !== 1) return current
+
+    // iframe 을 뺀 나머지에 실제 내용이 있으면 포장이 아니다
+    const clone = body.cloneNode(true) as HTMLElement
+    clone.querySelector('iframe[srcdoc]')?.remove()
+    if ((clone.textContent ?? '').trim().length > 40) return current
+
+    current = frames[0].getAttribute('srcdoc') ?? ''
+  }
+  return current
+}
+
 /** 살균 + 표 칸 정리까지만 한 상태의 본문 조각 */
 function prepare(source: string, format: DocFormat): HTMLElement {
   const rawHtml =
     format === 'html'
-      ? String(source ?? '')
+      ? unwrapIframeWrapper(String(source ?? ''))
       : (marked.parse(String(source ?? ''), { async: false }) as string)
 
   const holder = document.createElement('div')
