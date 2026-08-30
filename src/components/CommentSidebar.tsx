@@ -99,7 +99,7 @@ export default function CommentSidebar({
               <p className="px-1 py-4 text-sm leading-relaxed text-(--color-fg-muted)">
                 본문에서 문장을 드래그하면 그 자리에 댓글을 달 수 있어요.
                 <br />
-                문단 왼쪽의 <strong>+</strong> 를 누르면 문단 전체에 달려요.
+                문단 오른쪽의 <strong>+</strong> 를 누르면 문단 전체에 달려요.
               </p>
             )}
 

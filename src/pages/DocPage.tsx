@@ -265,7 +265,7 @@ export default function DocPage() {
       )}
 
       <div className="grid items-start lg:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="min-w-0 px-8 py-7 pb-28">
+        <div className="min-w-0 py-7 pr-18 pb-28 pl-8">
           <div className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-(--color-border) pb-3 text-xs text-(--color-fg-muted)">
             <Link to={`/s/${systemId}`} className="no-underline hover:underline">
               ← 기획서 목록

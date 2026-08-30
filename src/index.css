@@ -204,7 +204,11 @@
   height: 13px;
 }
 
-.spec-body .spec-gutter-add { left: -30px; }
+/* 둘 다 오른쪽 여백에 둔다 — 댓글 사이드바가 오른쪽이라 손이 그쪽으로 간다.
+   댓글이 이미 달린 문단에서는 말풍선이 글자 쪽을 차지하고 + 가 한 칸 바깥으로 밀린다. */
+.spec-body .spec-gutter-add { right: -30px; }
+
+.spec-body [data-block-id].has-comments > .spec-gutter-add { right: -58px; }
 
 .spec-body .spec-gutter-badge {
   right: -30px;
