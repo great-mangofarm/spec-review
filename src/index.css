@@ -22,6 +22,7 @@
 
 .spec-body [data-block-id] {
   position: relative;
+  transition: background 0.12s ease;
 }
 
 .spec-body h1,
@@ -219,6 +220,20 @@
 .spec-body [data-block-id]:hover > .spec-gutter,
 .spec-body .spec-gutter:focus-visible {
   opacity: 1;
+}
+
+/* 여백 버튼에 마우스를 올리면 "이 문단에 붙는다"는 걸 본문에서 보여준다.
+   버튼이 문단의 자식이라 :has() 로 부모를 거꾸로 짚는다. */
+.spec-body [data-block-id]:has(> .spec-gutter:hover),
+.spec-body [data-block-id]:has(> .spec-gutter:focus-visible) {
+  background: rgba(120, 120, 120, 0.1);
+  border-radius: 4px;
+}
+
+/* 이미 댓글이 달린 문단은 바탕이 노랗다. 거기선 같은 노랑을 조금 진하게 해야 눌린 게 보인다 */
+.spec-body [data-block-id].has-comments:has(> .spec-gutter:hover),
+.spec-body [data-block-id].has-comments:has(> .spec-gutter:focus-visible) {
+  background: rgba(253, 237, 176, 0.55);
 }
 
 .spec-body .spec-gutter:hover {
