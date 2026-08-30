@@ -165,19 +165,31 @@ Firestore 문서 하나가 1MB 를 못 넘어서, 기획서 본문은 **700KB** 
 | 본인 댓글 수정·삭제 | ○ | ○ |
 | 남의 댓글 삭제 | ○ | × |
 
-## 배포 (S3 + CloudFront)
+## 배포 (Cloudflare Pages)
 
-```bash
-npm run build
-aws s3 sync dist/ s3://<버킷>/ --delete
-aws cloudfront create-invalidation --distribution-id <배포ID> --paths "/*"
-```
+GitHub 저장소를 연결해두면 **main 에 push 하는 것이 곧 배포**다.
 
-SPA 라서 CloudFront 에서 **403/404 를 `/index.html` (200) 로 돌려주는 오류 응답**을
-설정해야 새로고침이 깨지지 않는다.
+| 항목 | 값 |
+| --- | --- |
+| 빌드 명령 | `npm run build` |
+| 출력 디렉터리 | `dist` |
+
+**환경변수**(Production·Preview 양쪽에 넣을 것)
+
+- `NODE_AUTH_TOKEN` — mango-ui 가 GitHub Packages 에 있어서 설치에 필요하다.
+  `gh auth token -u great-mangofarm` 로 얻는다.
+- `VITE_FIREBASE_*` 6개 — `.env.example` 참고
+
+Node 버전은 `.node-version` 으로 고정해뒀다.
+
+`public/_redirects` 가 SPA 새로고침을 받아준다. 이게 없으면 `/s/xxx` 에서
+새로고침할 때 404 가 뜬다.
 
 `public/fonts/` 의 Pretendard TTF 두 개는 PDF 에 글꼴을 심는 데 쓰인다.
 빌드 결과에 그대로 들어가니 지우지 말 것.
+
+배포한 도메인은 **Firebase 콘솔 → Authentication → Settings → 승인된 도메인**에
+등록해야 로그인이 된다.
 
 ## 안 넣은 것
 
