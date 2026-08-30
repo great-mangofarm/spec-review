@@ -18,6 +18,8 @@ interface Props {
   onDraftChange: (draft: Draft | null) => void
   onFocusThread: (thread: Thread) => void
   onSubmit: (body: string, target: SubmitTarget) => Promise<void>
+  /** 편집 중에는 새 덧글을 막는다. 이미 달린 피드백에 답글은 계속 가능. */
+  disableNew?: boolean
 }
 
 export default function CommentSidebar({
@@ -29,6 +31,7 @@ export default function CommentSidebar({
   onDraftChange,
   onFocusThread,
   onSubmit,
+  disableNew = false,
 }: Props) {
   const [tab, setTab] = useState('anchored')
   const [showResolved, setShowResolved] = useState(false)
@@ -73,7 +76,7 @@ export default function CommentSidebar({
   )
 
   return (
-    <aside className="sticky top-[var(--topbar-height,52px)] flex h-[calc(100vh-52px)] flex-col border-l border-(--color-border) bg-(--color-bg)">
+    <aside className="sticky top-[var(--sr-topbar,64px)] flex h-[calc(100vh-var(--sr-topbar,64px))] flex-col border-l border-(--color-border) bg-(--color-bg)">
       <Tabs value={tab} onValueChange={setTab} className="flex min-h-0 flex-1 flex-col">
         <TabList className="shrink-0 border-b border-(--color-border) px-3 pt-2">
           <Tab value="anchored" badge={<Badge size="sm" variant="soft">{anchored.filter((t) => !t.root.resolved).length}</Badge>}>
@@ -119,7 +122,11 @@ export default function CommentSidebar({
           </TabPanel>
 
           <TabPanel value="doc" className="flex flex-col gap-2">
-            {draft?.scope === 'doc' ? (
+            {disableNew ? (
+              <p className="rounded-md bg-(--color-bg-subtle) px-3 py-2 text-xs text-(--color-fg-muted)">
+                편집하는 동안에는 새 덧글을 달 수 없어요. 답글은 그대로 됩니다.
+              </p>
+            ) : draft?.scope === 'doc' ? (
               <Composer
                 heading="문서 전체에 덧글"
                 onCancel={() => onDraftChange(null)}

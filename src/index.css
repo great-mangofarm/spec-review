@@ -245,3 +245,118 @@
 @media (hover: none) {
   .spec-body .spec-gutter { opacity: 0.5; }
 }
+
+/* ── 편집기 ──────────────────────────────────────────────
+   본문(.spec-body)과 같은 클래스를 편집면에도 걸어서, 쓰는 동안 보이는 모습이
+   저장 후와 같게 만든다. 아래는 편집할 때만 필요한 것들. */
+
+.spec-editor .ProseMirror {
+  min-height: 24rem;
+  outline: none;
+  padding: 1.25rem 0 4rem;
+}
+
+/* 첫 요소의 위 여백이 붙어 있는 툴바 쪽으로 새어나가지 않게 */
+.spec-editor .ProseMirror > :first-child {
+  margin-top: 0;
+}
+
+/* 빈 문서 안내 문구 */
+.spec-editor .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--color-fg-muted, #9a9a94);
+}
+
+/* 편집 중 선택 영역이 확실히 보이게 */
+.spec-editor .ProseMirror ::selection {
+  background: rgba(120, 170, 255, 0.35);
+}
+
+/* 표 — 편집 중에는 칸 경계와 열 너비 조절 손잡이가 보여야 한다 */
+.spec-editor .ProseMirror table {
+  table-layout: fixed;
+  width: 100%;
+  overflow: hidden;
+}
+
+.spec-editor .ProseMirror td,
+.spec-editor .ProseMirror th {
+  position: relative;
+  min-width: 4rem;
+  vertical-align: top;
+}
+
+.spec-editor .ProseMirror .selectedCell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(120, 170, 255, 0.22);
+  pointer-events: none;
+}
+
+.spec-editor .ProseMirror .column-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  bottom: 0;
+  width: 4px;
+  background: var(--color-bg-brand, #3c8f66);
+  pointer-events: none;
+}
+
+.spec-editor .ProseMirror.resize-cursor {
+  cursor: col-resize;
+}
+
+/* 체크 목록 */
+.spec-body ul[data-type='taskList'] {
+  list-style: none;
+  padding-left: 0.2em;
+}
+
+.spec-body ul[data-type='taskList'] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5em;
+}
+
+.spec-body ul[data-type='taskList'] li > label {
+  margin-top: 0.35em;
+  user-select: none;
+}
+
+.spec-body ul[data-type='taskList'] li > div {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 다이어그램 블록 — 편집 중에는 누를 수 있는 카드처럼 보이게 */
+.spec-editor-mermaid {
+  margin: 1.2em 0;
+  border: 1px solid var(--color-border, #e5e5e5);
+  border-radius: 8px;
+  background: var(--color-bg, #fff);
+}
+
+.spec-editor-mermaid:hover {
+  border-color: var(--color-border-strong, #c9c9c2);
+}
+
+.spec-editor-mermaid .mermaid-block {
+  margin: 0;
+  border: none;
+}
+
+.spec-editor-mermaid.ProseMirror-selectednode {
+  outline: 2px solid var(--color-bg-brand, #3c8f66);
+  outline-offset: 2px;
+}
+
+/* 편집 중 이미지 선택 표시 */
+.spec-editor .ProseMirror img.ProseMirror-selectednode {
+  outline: 2px solid var(--color-bg-brand, #3c8f66);
+  outline-offset: 2px;
+}

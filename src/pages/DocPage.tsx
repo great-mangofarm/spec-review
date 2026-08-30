@@ -1,20 +1,17 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Badge, Button, Spinner, useToast } from '@great-mangofarm/mango-ui'
 import AppShell from '@/components/AppShell'
 import CommentSidebar from '@/components/CommentSidebar'
-import DocEditDialog from '@/components/DocEditDialog'
+
+// 편집기(Tiptap·아이콘 묶음)는 무거워서 고치기를 누를 때만 받아온다
+const DocEditor = lazy(() => import('@/components/editor/DocEditor'))
 import { canManage, useAuth } from '@/store/auth'
-import { renderDocument } from '@/lib/blocks'
+import { renderDocument, toStoredHtml } from '@/lib/blocks'
 import { decorate, markOrphans, readSelection, scrollToBlock, type SelectionAnchor } from '@/lib/anchor'
 import { renderMermaidBlocks } from '@/lib/mermaid'
 import { downloadDocPdf } from '@/lib/pdf'
-import {
-  createComment,
-  watchComments,
-  watchDoc,
-  type NewComment,
-} from '@/lib/db'
+import { createComment, updateDocMeta, watchComments, watchDoc, type NewComment } from '@/lib/db'
 import type { AnchoredComment, SpecComment, SpecDoc, Thread } from '@/lib/types'
 
 export interface Draft {
@@ -37,6 +34,7 @@ export default function DocPage() {
   const [bubble, setBubble] = useState<SelectionAnchor | null>(null)
   const [editing, setEditing] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [saving, setSaving] = useState(false)
 
   const bodyRef = useRef<HTMLDivElement>(null)
 
@@ -73,17 +71,19 @@ export default function DocPage() {
    * 하이라이트를 DOM 에 심는 방식이라, React 가 리렌더 때 innerHTML 을 되돌리면
    * 표시가 통째로 날아간다. 이 구역만 React 관리 밖에 둔다.
    */
+  // editing 이 deps 에 있어야 한다 — 편집을 마치고 돌아오면 본문 div 가 새로 마운트되는데,
+  // 내용이 그대로면 rendered.html 이 안 바뀌어서 다시 채워지지 않고 빈 화면이 된다.
   useEffect(() => {
     const container = bodyRef.current
     if (!container) return
     container.innerHTML = rendered.html
     void renderMermaidBlocks(container)
-  }, [rendered.html])
+  }, [rendered.html, editing])
 
   // 하이라이트·배지 다시 그리기 (위 효과 다음에 실행된다)
   useEffect(() => {
     if (bodyRef.current) decorate(bodyRef.current, comments, activeThreadId)
-  }, [comments, activeThreadId, rendered.html])
+  }, [comments, activeThreadId, rendered.html, editing])
 
   // 본문에서 문장을 드래그하면 뜨는 버블
   useEffect(() => {
@@ -108,7 +108,7 @@ export default function DocPage() {
       document.removeEventListener('mousedown', onPointerDown)
       window.removeEventListener('scroll', hide)
     }
-  }, [rendered.html])
+  }, [rendered.html, editing])
 
   const onBodyClick = useCallback((event: React.MouseEvent) => {
     const target = event.target as HTMLElement
@@ -197,6 +197,33 @@ export default function DocPage() {
     if (thread.root.blockId && bodyRef.current) scrollToBlock(bodyRef.current, thread.root.blockId)
   }, [])
 
+  async function saveEdit(next: { title: string; html: string; orientation: 'portrait' | 'landscape' }) {
+    if (!user || !doc) return
+    setSaving(true)
+    try {
+      // 편집기가 낸 HTML 도 한 번 더 살균해서 저장한다. 붙여넣기로 들어온 태그를 믿지 않는다.
+      const html = toStoredHtml(next.html, 'html')
+      const bodyChanged = html !== doc.source
+
+      await updateDocMeta(
+        doc.id,
+        {
+          title: next.title,
+          pdfOrientation: next.orientation,
+          // 내용이 바뀐 경우에만 판을 올린다
+          ...(bodyChanged ? { source: html, format: 'html' as const, version: doc.version + 1 } : {}),
+        },
+        user,
+      )
+      setEditing(false)
+      toast({ intent: 'success', title: '저장했어요', description: bodyChanged ? '새 판으로 올라갔어요.' : '' })
+    } catch (err) {
+      toast({ intent: 'error', title: '저장하지 못했어요', description: (err as Error).message })
+    } finally {
+      setSaving(false)
+    }
+  }
+
   async function exportPdf() {
     if (!doc) return
     setExporting(true)
@@ -266,17 +293,39 @@ export default function DocPage() {
 
       <div className="grid items-start lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="min-w-0 py-7 pr-18 pb-28 pl-8">
-          <div className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-(--color-border) pb-3 text-xs text-(--color-fg-muted)">
-            <Link to={`/s/${systemId}`} className="no-underline hover:underline">
-              ← 기획서 목록
-            </Link>
-            <span>
-              {doc.ownerName} 올림 · {doc.version}판
-            </span>
-            {doc.lastEditedBy && <span>마지막 수정 {doc.lastEditedBy}</span>}
-          </div>
+          {editing ? (
+            <Suspense
+              fallback={
+                <div className="grid place-items-center py-24">
+                  <Spinner size={24} label="편집기 여는 중" />
+                </div>
+              }
+            >
+              <DocEditor
+                initialTitle={doc.title}
+                // 편집기에는 저장 형식(다이어그램이 코드블록인 상태)을 그대로 넘긴다
+                initialHtml={toStoredHtml(doc.source, doc.format)}
+                initialOrientation={doc.pdfOrientation ?? 'portrait'}
+                saving={saving}
+                onCancel={() => setEditing(false)}
+                onSave={saveEdit}
+              />
+            </Suspense>
+          ) : (
+            <>
+              <div className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-(--color-border) pb-3 text-xs text-(--color-fg-muted)">
+                <Link to={`/s/${systemId}`} className="no-underline hover:underline">
+                  ← 기획서 목록
+                </Link>
+                <span>
+                  {doc.ownerName} 올림 · {doc.version}판
+                </span>
+                {doc.lastEditedBy && <span>마지막 수정 {doc.lastEditedBy}</span>}
+              </div>
 
-          <div ref={bodyRef} className="spec-body" onClick={onBodyClick} />
+              <div ref={bodyRef} className="spec-body" onClick={onBodyClick} />
+            </>
+          )}
         </div>
 
         <CommentSidebar
@@ -288,6 +337,7 @@ export default function DocPage() {
           onDraftChange={setDraft}
           onFocusThread={focusThread}
           onSubmit={submitComment}
+          disableNew={editing}
         />
       </div>
 
@@ -303,16 +353,6 @@ export default function DocPage() {
         </div>
       )}
 
-      {editing && (
-        <DocEditDialog
-          doc={doc}
-          onClose={() => setEditing(false)}
-          onSaved={() => {
-            setEditing(false)
-            toast({ intent: 'success', title: '저장했어요', description: '새 판으로 올라갔어요.' })
-          }}
-        />
-      )}
     </AppShell>
   )
 }

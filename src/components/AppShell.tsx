@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Avatar, Button, TopBar } from '@great-mangofarm/mango-ui'
 import { logout, useAuth } from '@/store/auth'
@@ -17,6 +17,25 @@ interface Props {
 export default function AppShell({ children, center, actions, contained = true }: Props) {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const barRef = useRef<HTMLElement>(null)
+
+  /**
+   * 상단바 높이를 재서 --sr-topbar 로 알린다.
+   * 아래에 붙는 것들(댓글 사이드바, 편집기 헤더)이 이 값을 기준으로 자리를 잡는다.
+   * 높이를 숫자로 박아두면 상단바 내용이 바뀔 때마다 조용히 어긋난다.
+   */
+  useEffect(() => {
+    const bar = barRef.current
+    if (!bar) return
+
+    const apply = () =>
+      document.documentElement.style.setProperty('--sr-topbar', `${bar.offsetHeight}px`)
+
+    apply()
+    const observer = new ResizeObserver(apply)
+    observer.observe(bar)
+    return () => observer.disconnect()
+  }, [])
 
   async function handleLogout() {
     await logout()
@@ -25,7 +44,7 @@ export default function AppShell({ children, center, actions, contained = true }
 
   return (
     <div className="flex min-h-screen flex-col">
-      <TopBar showSidebarTrigger={false} className="sticky top-0 z-30 gap-3">
+      <TopBar ref={barRef} showSidebarTrigger={false} className="sticky top-0 z-30 gap-3">
         <Link to="/" className="shrink-0 text-sm font-semibold tracking-tight no-underline">
           기획서 리뷰
         </Link>

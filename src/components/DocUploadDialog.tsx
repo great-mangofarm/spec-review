@@ -9,7 +9,7 @@ import {
   TextField,
   Textarea,
 } from '@great-mangofarm/mango-ui'
-import { detectFormat, guessTitle } from '@/lib/blocks'
+import { detectFormat, guessTitle, toStoredHtml } from '@/lib/blocks'
 import { createDoc } from '@/lib/db'
 import { useAuth } from '@/store/auth'
 
@@ -61,12 +61,14 @@ export default function DocUploadDialog({ systemId, onClose, onCreated }: Props)
     setError('')
     try {
       const format = detectFormat(filename, body)
+      // 저장 형식은 HTML 하나로 통일한다. 마크다운으로 올려도 여기서 한 번 바꿔 넣으면
+      // 그 뒤로는 위지윅 편집기가 그대로 열고 닫을 수 있다.
       const docId = await createDoc(
         {
           systemId,
           title: title.trim() || guessTitle(body, format, filename),
-          format,
-          source: body,
+          format: 'html',
+          source: toStoredHtml(body, format),
         },
         user,
       )

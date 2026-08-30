@@ -155,7 +155,13 @@ export async function createDoc(
 
 export async function updateDocMeta(
   docId: string,
-  patch: { title?: string; source?: string; version?: number; pdfOrientation?: SpecDoc['pdfOrientation'] },
+  patch: {
+    title?: string
+    source?: string
+    format?: SpecDoc['format']
+    version?: number
+    pdfOrientation?: SpecDoc['pdfOrientation']
+  },
   user: UserProfile,
 ): Promise<void> {
   await updateDoc(doc(db, DOCS, docId), {

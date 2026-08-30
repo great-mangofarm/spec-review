@@ -38,7 +38,9 @@ export function sanitize(rawHtml: string): string {
   return DOMPurify.sanitize(rawHtml, {
     USE_PROFILES: { html: true },
     ADD_ATTR: ['target', 'colspan', 'rowspan', 'align', 'start', 'type'],
-    FORBID_TAGS: ['style', 'form', 'input', 'button', 'iframe', 'object', 'embed'],
+    // input 은 체크리스트(할 일 목록) 때문에 남긴다. form 을 막아둬서 제출은 안 된다.
+    FORBID_TAGS: ['style', 'form', 'button', 'iframe', 'object', 'embed'],
+    ADD_TAGS: ['input'],
     FORBID_ATTR: ['style', 'srcset'],
   })
 }
@@ -46,6 +48,11 @@ export function sanitize(rawHtml: string): string {
 /**
  * ```mermaid 코드블록을 그림이 들어갈 자리로 바꿔둔다.
  * 실제 그리기는 mermaid 라이브러리를 받아온 뒤에 따로 한다 (라이브러리가 무거워서).
+ *
+ * 이건 화면에 그릴 때만 한다. **저장 형식에는 코드블록 그대로 남긴다.**
+ * DOMPurify 가 `-->` 가 들어간 속성값을 통째로 지우는데(mXSS 방어), mermaid 화살표가
+ * 전부 `-->` 라서 다이어그램 코드를 data 속성에 담아 저장하면 다시 읽을 때 사라진다.
+ * 텍스트(코드블록 안)로 두면 그 검사에 걸리지 않는다.
  */
 function extractMermaid(root: HTMLElement) {
   for (const code of Array.from(root.querySelectorAll('pre > code'))) {
@@ -61,18 +68,79 @@ function extractMermaid(root: HTMLElement) {
   }
 }
 
+/**
+ * 목록 항목과 표 칸 안의 문단 껍데기를 벗겨낸다.
+ *
+ * 마크다운 변환기는 `<li>글자</li>` 를 만들지만 편집기는 `<li><p>글자</p></li>` 로 되돌린다
+ * (표 칸도 마찬가지). 그대로 두면 li·tr 이 최말단 문단이 아니게 되면서 문단 단위가
+ * 통째로 달라지고, 거기 달아둔 댓글이 전부 위치를 잃는다.
+ *
+ * 벗겨내도 글자는 그대로라 문단 id(글자 해시)는 안 바뀐다. 느슨한 목록처럼 원래부터
+ * `<li><p>` 인 문서도 여기서 같은 모양으로 맞춰진다.
+ */
+function unwrapContainerParagraphs(root: HTMLElement) {
+  for (const container of Array.from(root.querySelectorAll('li, td, th'))) {
+    for (const child of Array.from(container.children)) {
+      if (child.tagName.toLowerCase() !== 'p') continue
+      while (child.firstChild) container.insertBefore(child.firstChild, child)
+      child.remove()
+    }
+  }
+}
+
+/** 살균 + 표 칸 정리까지만 한 상태의 본문 조각 */
+function prepare(source: string, format: DocFormat): HTMLElement {
+  const rawHtml =
+    format === 'html'
+      ? String(source ?? '')
+      : (marked.parse(String(source ?? ''), { async: false }) as string)
+
+  const holder = document.createElement('div')
+  holder.innerHTML = sanitize(rawHtml)
+  unwrapContainerParagraphs(holder)
+  return holder
+}
+
+/**
+ * 저장할 HTML. 위지윅 편집기가 다루는 형식이 곧 저장 형식이라, 마크다운으로 올린
+ * 문서도 올리는 시점에 한 번 HTML 로 바꿔 넣는다.
+ *
+ * data-block-id 는 넣지 않는다. 그건 화면에 그릴 때마다 본문에서 다시 계산하는
+ * 값이라, 저장해두면 편집 후에 낡은 값이 남아 댓글 위치가 어긋난다.
+ */
+export function toStoredHtml(source: string, format: DocFormat): string {
+  return prepare(source, format).innerHTML
+}
+
+/**
+ * 문단을 대표하는 글자. 이 값의 해시가 곧 문단 id 라서, 같은 내용이면 어떤 경로로
+ * 만들어진 HTML이든 같은 값이 나와야 한다.
+ *
+ * 표의 행이 까다롭다. 마크다운 변환기는 칸 사이에 줄바꿈을 넣고 편집기는 안 넣어서,
+ * textContent 를 그냥 쓰면 "가 나 다" 와 "가나다" 로 갈린다. 칸 단위로 뽑아
+ * 한 칸씩 띄워 붙이면 양쪽이 같아진다.
+ */
+function blockText(element: HTMLElement): string {
+  if (element.classList.contains('mermaid-block')) {
+    return normalize(element.getAttribute('data-mermaid-src') ?? '')
+  }
+  if (element.tagName.toLowerCase() === 'tr') {
+    return normalize(
+      Array.from(element.querySelectorAll('td, th'))
+        .map((cell) => normalize(cell.textContent ?? ''))
+        .join(' '),
+    )
+  }
+  return normalize(element.textContent ?? '')
+}
+
 export interface RenderedDoc {
   html: string
   blocks: Block[]
 }
 
 export function renderDocument(source: string, format: DocFormat): RenderedDoc {
-  const rawHtml =
-    format === 'html' ? String(source ?? '') : (marked.parse(String(source ?? ''), { async: false }) as string)
-
-  const holder = document.createElement('div')
-  holder.innerHTML = sanitize(rawHtml)
-
+  const holder = prepare(source, format)
   extractMermaid(holder)
 
   const blocks: Block[] = []
@@ -82,10 +150,7 @@ export function renderDocument(source: string, format: DocFormat): RenderedDoc {
   for (const element of Array.from(holder.querySelectorAll<HTMLElement>(BLOCK_SELECTOR))) {
     if (element.querySelector(BLOCK_SELECTOR)) continue // 가장 안쪽 문단만
 
-    const text =
-      element.classList.contains('mermaid-block')
-        ? normalize(element.getAttribute('data-mermaid-src') ?? '')
-        : normalize(element.textContent ?? '')
+    const text = blockText(element)
 
     const hash = hashText(text || `${element.tagName}:${index}`)
     const occurrence = (seen.get(hash) ?? 0) + 1
