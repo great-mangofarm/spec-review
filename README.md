@@ -128,7 +128,7 @@ npm install
 ### 2. Firebase 설정값
 
 이슈트래커와 **같은 Firebase 프로젝트**를 본다. 그래야 계정이 그대로 먹힌다.
-Vercel 환경변수나 Firebase 콘솔 → 프로젝트 설정 → 내 앱에서 6개를 복사해
+Cloudflare Pages 환경변수나 Firebase 콘솔 → 프로젝트 설정 → 내 앱에서 6개를 복사해
 `.env.local` 에 넣는다. 이 파일은 커밋하지 않는다.
 
 ### 3. Firestore 규칙 게시
@@ -168,6 +168,11 @@ Firestore 문서 하나가 1MB 를 못 넘어서, 기획서 본문은 **700KB** 
 ## 배포 (Cloudflare Pages)
 
 GitHub 저장소를 연결해두면 **main 에 push 하는 것이 곧 배포**다.
+주소는 두 개가 같은 배포물을 가리킨다.
+
+- **https://spec.datasystem.app** — 커스텀 도메인. `datasystem.app` zone 에
+  `spec` CNAME 을 `spec-review.pages.dev` 로 두었다 (DNS only)
+- **https://spec-review.pages.dev** — 프로젝트 이름으로 자동 붙는 기본 주소
 
 | 항목 | 값 |
 | --- | --- |
@@ -189,7 +194,7 @@ Node 버전은 `.node-version` 으로 고정해뒀다.
 빌드 결과에 그대로 들어가니 지우지 말 것.
 
 배포한 도메인은 **Firebase 콘솔 → Authentication → Settings → 승인된 도메인**에
-등록해야 로그인이 된다.
+등록해야 로그인이 된다. 위 두 주소는 등록해뒀다.
 
 ## 안 넣은 것
 
