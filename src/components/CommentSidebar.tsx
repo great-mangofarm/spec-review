@@ -79,6 +79,7 @@ export default function CommentSidebar({
     <aside className="sticky top-[var(--sr-topbar,64px)] flex h-[calc(100vh-var(--sr-topbar,64px))] flex-col border-l border-(--color-border) bg-(--color-bg)">
       <Tabs
         variant="underline"
+        size="sm"
         value={tab}
         onValueChange={setTab}
         className="flex min-h-0 flex-1 flex-col gap-0"

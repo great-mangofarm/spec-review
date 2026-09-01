@@ -291,7 +291,7 @@ export default function DocPage() {
         </p>
       )}
 
-      <div className="grid items-start lg:grid-cols-[minmax(0,1fr)_432px]">
+      <div className="grid items-start lg:grid-cols-[minmax(0,1fr)_480px]">
         <div className="min-w-0 py-7 pr-18 pb-28 pl-8">
           {editing ? (
             <Suspense
