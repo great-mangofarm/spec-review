@@ -67,7 +67,7 @@ export default function DocEditor({
   return (
     <div className="flex min-w-0 flex-col">
       {/* 제목줄과 툴바를 한 덩어리로 붙여둔다. 따로 sticky 를 걸면 같은 높이에서 겹친다. */}
-      <div className="sticky top-[var(--sr-topbar,64px)] z-30 border-b border-(--color-border) bg-(--color-bg)">
+      <div className="sticky top-[var(--sr-topbar,64px)] z-30 border-b border-(--color-border) bg-(--color-background)">
       <div className="flex flex-wrap items-center gap-2 py-3">
         <TextField
           className="min-w-60 flex-1"

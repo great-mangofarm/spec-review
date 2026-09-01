@@ -77,8 +77,15 @@ export default function CommentSidebar({
 
   return (
     <aside className="sticky top-[var(--sr-topbar,64px)] flex h-[calc(100vh-var(--sr-topbar,64px))] flex-col border-l border-(--color-border) bg-(--color-bg)">
-      <Tabs value={tab} onValueChange={setTab} className="flex min-h-0 flex-1 flex-col">
-        <TabList className="shrink-0 border-b border-(--color-border) px-3 pt-2">
+      <Tabs
+        variant="underline"
+        value={tab}
+        onValueChange={setTab}
+        className="flex min-h-0 flex-1 flex-col gap-0"
+      >
+        {/* underline variant 가 TabList 에 border-b 를 직접 붙인다. 여기서 또 주면
+            선이 두 줄로 겹치고, 상하 패딩을 주면 탭의 밑줄이 그 선에서 떨어진다. */}
+        <TabList className="shrink-0 px-3">
           <Tab value="anchored" badge={<Badge size="sm" variant="soft">{anchored.filter((t) => !t.root.resolved).length}</Badge>}>
             문장 피드백
           </Tab>
